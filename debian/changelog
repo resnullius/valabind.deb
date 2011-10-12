@@ -1,0 +1,5 @@
+valabind (0.5-1) unstable; urgency=low
+
+  * initial release (Closes: #573501)
+
+ -- Sebastian Reichel <sre@debian.org>  Wed, 12 Oct 2011 21:52:58 +0200
