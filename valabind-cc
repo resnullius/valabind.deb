@@ -1,0 +1,199 @@
+#!/bin/sh
+# Copyleft valabind 2009-2011, pancake at nopcode.org
+
+LANG=$1
+MOD=$2
+OMOD=${MOD}
+COMPILE=Yes
+ARG_VAPIDIR=""
+EXT="c"
+CXXOUT=0
+NOGEN=0
+if [ -n "`uname -a | grep -i darwin`" ]; then
+  SOEXT="dylib"
+elif [ -n "`echo ${CC} | grep mingw`" ]; then
+  SOEXT="dll"
+else
+  SOEXT="so"
+fi
+
+show_help () {
+  echo "Usage: valabind-cc [lang] [module-name] [-flags] vapifile .."
+  echo "Example: valabind-cc python r_bp -I/usr/include/r_bp r_bp.vapi"
+  echo "  lang: python, guile, go, ruby, perl, lua, java, csharp, ..."
+  echo "  --help,-h      show this help message"
+  echo "  --version      show version of valabind"
+  echo "  --vapidir=dir  show version of valabind"
+  echo "  --glib         assume vapi source is glib/gobject based"
+  echo "  --test [lang]  test if it is possible to build"
+  echo "  -x             generate C++ swig code"
+  echo "  -X             output C++ instead of SWIG interface"
+  echo "  -I[path]       add includepath for SWIGFLAGS and CFLAGS"
+  echo "  -L[path]       append library path to LDFLAGS"
+  echo "  -l[lib]        append to LDFLAGS to link a library"
+  echo "  -C             do not compile, just let the .c/.cxx and .i files"
+  echo "  -n             do not generate .i/.c/.cxx code, but compile it"
+  echo " Environment:"
+  echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
+  exit 0
+}
+
+TEST=0
+case "$1" in
+"--test")
+  TEST=1
+  LANG=$2
+  ;;
+"--version"|"-V")
+  valabind --version
+  swig -version | grep SWIG
+  ${CC} --version | grep ${CC}
+  exit 0
+  ;;
+"--help"|"-h")
+  show_help
+  ;;
+esac
+
+[ -z "${LANG}" ] && show_help
+[ -z "${CC}" ] && CC=gcc
+[ -z "${CXX}" ] && CXX=g++
+
+case "${LANG}" in
+"guile")
+  CFLAGS="${CFLAGS} `guile-config compile`"
+  LDFLAGS="${LDFLAGS} `guile-config link`"
+  ;;
+"python")
+  if [ -n "`echo ${CXX} | grep mingw`" ]; then
+    CFLAGS="${CFLAGS} -I${HOME}/.wine/drive_c/Python27/include"
+    LDFLAGS="${LDFLAGS} -L${HOME}/.wine/drive_c/Python27/libs -lpython27"
+  else
+    PYCFG=""
+    for a in ${PYTHON_CONFIG} python-config python2-config python3-config ; do
+      $a --help >/dev/null 2>&1
+      if [ $? = 0 ]; then
+        PYCFG=$a
+        break
+      fi
+    done
+    if [ -z "$PYCFG" ]; then
+      printf "No python-config found"
+      exit 1
+    fi
+    CFLAGS="${CFLAGS} `$PYCFG --cflags | sed -e 's,-arch .*,,g'`"
+    LDFLAGS="${LDFLAGS} `$PYCFG --ldflags`"
+  fi
+  OMOD="_${MOD}"
+  ;;
+"ruby")
+  if [ "`ruby --version 2>/dev/null | grep 1.8`" ]; then
+    RB_CFLAGS=`ruby -e 'require "mkmf"; print "-I" + Config::CONFIG["archdir"];' 2>/dev/null`
+  else
+  if [ "`ruby --version 2>/dev/null | grep 1.9`" ]; then
+    RB_CFLAGS=`ruby -e 'require "mkmf"; a=Config::CONFIG["rubyhdrdir"]; print "-I#{a} -I#{a}/" + Config::CONFIG["arch"];'`
+  fi ; fi
+  CFLAGS="${CFLAGS} ${RB_CFLAGS}"
+  ;;
+"perl")
+  LC_ALL=C # fix anoying perl warning
+  export LC_ALL
+  CFLAGS="${CFLAGS} `perl -MExtUtils::Embed -e ccopts 2>/dev/null`"
+  LDFLAGS="${LDFLAGS} `perl -MExtUtils::Embed -e ldopts 2>/dev/null`"
+  ;;
+"java")
+  if [ -f /opt/java/include/jni.h ]; then
+    CFLAGS="${CFLAGS} -I/opt/java/include -I/opt/java/include/linux"
+  else
+  if [ "$JAVA_HOME" ]; then
+    CFLAGS="${CFLAGS} -I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
+  fi ; fi
+  ;;
+"lua")
+  if [ -f /usr/include/lua5.1/lua.h ]; then
+    CFLAGS="${CFLAGS} -I/usr/include/lua5.1"
+    LDFLAGS="${LDFLAGS} -llua5.1"
+  fi
+  ;;
+"go")
+  ;;
+"csharp")
+  ;;
+esac
+
+shift
+shift
+
+while : ; do
+  [ -z "$1" ] && break
+  if [ "`echo $1 | grep -- '-I'`" ]; then
+    CFLAGS="${CFLAGS} $1"
+    SWIGFLAGS="$1 ${SWIGFLAGS}"
+  elif [ "`echo $1 | grep -- '--vapidir'`" ]; then
+    ARG_VAPIDIR="`echo $1|sed -e 's,=, ,'`"
+  elif [ "`echo $1 | grep -- '-x'`" ]; then
+    CC="${CXX}"
+    EXT="cxx"
+    SWIGFLAGS="-c++ ${SWIGFLAGS}"
+    VALABINDFLAGS="-x ${VALABINDFLAGS}"
+  elif [ "`echo $1 | grep -- '-n'`" ]; then
+    NOGEN=1
+  elif [ "`echo $1 | grep -- '-X'`" ]; then
+    EXT="cxx"
+    CXXOUT=1
+  elif [ "`echo $1 | grep -- '-l'`" ]; then
+    LDFLAGS="$1 ${LDFLAGS}"
+  elif [ "`echo $1 | grep -- '--glib'`" ]; then
+    SWIGFLAGS="$1 ${SWIGFLAGS}"
+  elif [ "`echo $1 | grep -- '-L'`" ]; then
+    LDFLAGS="$1 ${LDFLAGS}"
+  elif [ "`echo $1 | grep -- '-C'`" ]; then
+    COMPILE=""
+  elif [ "`echo $1 | grep -- '-pthread'`" ]; then
+    echo ignored $1
+  else
+    FILES="$1 ${FILES}"
+  fi
+  shift
+done
+
+SWIGCPP="-DG_BEGIN_DECLS -DG_END_DECLS -DG_GNUC_CONST"
+
+if [ "$CXXOUT" = 1 ]; then
+  echo valabind -X ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES}
+  valabind -X ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.cxx -m ${MOD} ${FILES} || exit 1
+  #TODO:
+  #if [ -n "${COMPILE}" ]; then
+  #  echo ${CC} ${MOD}.cxx -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS}
+  #  ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} || exit 1
+  #fi
+#  echo ${CXX} ${MOD}.cxx $@ -fPIC -shared ${MOD}.cxx ${CXXFLAGS} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS}
+#  ${CXX} ${MOD}.cxx $@ -fPIC -shared ${MOD}.cxx ${CXXFLAGS} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} > /dev/null 2>&1
+elif [ "$TEST" = 1 ]; then
+  DIR=`mktemp -d /tmp/tmp.XXXXXX`
+  if [ ! $? = 0 ]; then
+    echo "Cannot create temporary directory"
+    exit 1
+  fi
+  cd ${DIR}
+  echo "%module ${MOD}" > ${MOD}.i
+  swig ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i >/dev/null 2>&1
+  if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
+  if [ -n "${QUITE}" ]; then
+    echo ${CC} $@ -fPIC -shared ${MOD}_wrap.c ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} 
+  fi
+  ${CC} $@ -fPIC -shared ${MOD}_wrap.c ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} >/dev/null 2>&1
+  if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
+  rm -rf ${DIR}
+else
+  if [ "${NOGEN}" = 0 ]; then
+    echo valabind ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES}
+    valabind ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES} || exit 1
+    echo swig ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i
+    swig ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i || exit 1
+  fi
+  if [ -n "${COMPILE}" ]; then
+    echo ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS}
+    ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} || exit 1
+  fi
+fi
