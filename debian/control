@@ -12,11 +12,9 @@ Vcs-Git: git://git.debian.org/pkg-vala/valabind.git
 Package: valabind
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: convert vapi files to other interface binding definitions
- Valabind is a tool to parse vala or vapi files to transform them into swig
+Suggests: gobject-introspection, swig, valac
+Description: convert vapi files to SWIG, C++, GIR or GEAR files
+ Valabind is a tool to parse vala or vapi files and transform them into SWIG
  interface files, C++ source files, GIR or GEAR.
  .
- With swig, you can create language bindings for any API written in vala or C
- with a vapi interface.
- .
- It can also generate bindings for C++ and v8-GearBox.
+ It allows easy, fully automatic generation of language bindings for vala code.
