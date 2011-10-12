@@ -1,6 +1,7 @@
 valabind (0.5.1-1) unstable; urgency=low
 
-  * new upstream release 
+  * new upstream release
+  * uses vala 0.14
 
  -- Sebastian Reichel <sre@debian.org>  Thu, 13 Oct 2011 01:47:04 +0200
 
