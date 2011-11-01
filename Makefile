@@ -1,5 +1,5 @@
 # run make V= to get debug output
-VERSION=0.5.2
+VERSION=0.6
 CONTACT=pancake@nopcode.org
 PWD=$(shell pwd)
 CC?=gcc
@@ -70,8 +70,11 @@ dist:
 	rm -rf valabind-${VERSION}/.hg
 	tar czvf valabind-${VERSION}.tar.gz valabind-${VERSION}
 
-clean mrproper:
-	rm -f valabind *.o *.c config.vala
+clean:
+	rm -f valabind *.o *.c
+
+mrproper:
+	rm -f config.vala
 
 deinstall: uninstall
 
