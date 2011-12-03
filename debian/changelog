@@ -1,3 +1,9 @@
+valabind (0.6.4-1) unstable; urgency=low
+
+  * new upstream release
+
+ -- Sebastian Reichel <sre@debian.org>  Sat, 03 Dec 2011 15:32:14 +0100
+
 valabind (0.6-1) unstable; urgency=low
 
   * new upstream release
