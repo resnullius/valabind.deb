@@ -19,6 +19,18 @@ if [ -z "${SOEXT}" ]; then
     SOEXT="so"
   fi
 fi
+if [ -z "${VALABIND_DEBUG}" ]; then
+  NULLPIPE=">/dev/null 2>&1"
+else
+  NULLPIPE=""
+fi
+
+use_cxx() {
+    CC="${CXX}"
+    EXT="cxx"
+    SWIGFLAGS="-c++ ${SWIGFLAGS}"
+    VALABINDFLAGS="-x ${VALABINDFLAGS}"
+}
 
 show_help () {
   echo "Usage: valabind-cc [lang] [module-name] [-flags] vapifile .."
@@ -37,6 +49,7 @@ show_help () {
   echo "  -C             do not compile, just let the .c/.cxx and .i files"
   echo "  -n             do not generate .i/.c/.cxx code, but compile it"
   echo " Environment:"
+  echo "  VALABIND_DEBUG if not empty show stderr of commands"
   echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
   echo "  SWIGFLAGS      extra flags to be passed to swig"
   echo "  SOEXT          force specific extension for shared library (so, dll, dylib)"
@@ -67,10 +80,12 @@ esac
 
 case "${LANG}" in
 "guile")
+  use_cxx
   CFLAGS="${CFLAGS} `guile-config compile 2>/dev/null`"
   LDFLAGS="${LDFLAGS} `guile-config link 2>/dev/null`"
   ;;
 "python")
+  use_cxx
   if [ -n "`echo ${CXX} | grep mingw`" ]; then
     CFLAGS="${CFLAGS} -I${HOME}/.wine/drive_c/Python27/include"
     LDFLAGS="${LDFLAGS} -L${HOME}/.wine/drive_c/Python27/libs -lpython27"
@@ -143,10 +158,7 @@ while : ; do
   elif [ "`echo $1 | grep -- '--vapidir'`" ]; then
     ARG_VAPIDIR="`echo $1|sed -e 's,=, ,'`"
   elif [ "`echo $1 | grep -- '-x'`" ]; then
-    CC="${CXX}"
-    EXT="cxx"
-    SWIGFLAGS="-c++ ${SWIGFLAGS}"
-    VALABINDFLAGS="-x ${VALABINDFLAGS}"
+    use_cxx
   elif [ "`echo $1 | grep -- '-n'`" ]; then
     NOGEN=1
   elif [ "`echo $1 | grep -- '-X'`" ]; then
@@ -187,20 +199,22 @@ elif [ "$TEST" = 1 ]; then
     exit 1
   fi
   cd ${DIR}
+  MOD=test # hack to fix guile
   echo "%module ${MOD}" > ${MOD}.i
-  ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i >/dev/null 2>&1
+  eval echo ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
+  eval ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
   if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
   if [ -n "${QUITE}" ]; then
-    echo ${CC} $@ -fPIC -shared ${MOD}_wrap.c ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} 
+    echo ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} 
   fi
-  ${CC} $@ -fPIC -shared ${MOD}_wrap.c ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} >/dev/null 2>&1
+  eval ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} ${NULLPIPE}
   if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
   rm -rf ${DIR}
 else
   if [ "${NOGEN}" = 0 ]; then
     echo valabind ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES}
     valabind ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES} || exit 1
-    echo ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i
+    eval echo ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
     ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i || exit 1
   fi
   if [ -n "${COMPILE}" ]; then

@@ -107,7 +107,7 @@ public class GirWriter : CodeVisitor {
 			return "char";
 		case "gchar*":
 		case "string":
-			return "string";
+			return "char *";
 			//return "char *"; // ??? 
 		case "gint":
 	 		return "int";
@@ -147,11 +147,60 @@ public class GirWriter : CodeVisitor {
 		return type;
 	}
 
+	private static string girtype(string ret) {
+		switch (ret) {
+		case "int[]":
+			return "gpointer"; // XXX
+		case "string?":
+		case "string":
+		case "char*":
+		case "char *":
+		case "const char*":
+			ret = "utf8";
+			break;
+		case "uint":
+		case "uint32":
+		case "unsigned int":
+			ret = "guint";
+			break;
+		case "int":
+		case "int32":
+			ret = "gint";
+			break;
+		case "unsigned long long":
+		case "uint64":
+			ret = "guint64";
+			break;
+		case "void*":
+		case "unsigned char*":
+		case "uint8*":
+			ret = "gpointer";
+			break;
+		case "bool":
+			ret = "gboolean";
+			break;
+		}
+		if (ret[ret.length-1] == '*')
+			return "gpointer";
+		return ret;
+	}
+
 	private bool is_target_file (string path) {
 		foreach (var file in files)
 			if (file == path)
 				return true;
 		return false;
+	}
+
+	public void walk_constant (Constant f) {
+		var cname = CCodeBaseModule.get_ccode_name (f);
+		var cvalue = "TODO";
+		var ctype = get_ctype (f.type_reference.to_string ());
+		var gtype = girtype (f.type_reference.to_string ());
+		extends += "<constant name=\""+cname+"\" value=\""+cvalue+"\">\n";
+		extends += "  <type name="+gtype+" c:type=\""+ctype+"\">\n";
+		extends += "</constant>\n";
+		//extends += "static const char *"+f.name+" = "+cname+";\n";
 	}
 
 	public override void visit_source_file (SourceFile source) {
@@ -177,7 +226,9 @@ public class GirWriter : CodeVisitor {
 		var name = CCodeBaseModule.get_ccode_name (f);
 		var type = f.variable_type.to_string ();
 		type = get_ctype (type);
-		externs += "    <field name=\""+name+"\" type=\""+type+"\"/>\n";
+		externs += "    <field name=\""+name+"\" allow-none=\"1\">\n";
+		externs += "      <type name=\""+girtype (type)+"\" c:type=\""+type+"\" />\n";
+		externs += "    </field>\n";
 	}
 
 	public void walk_struct (string pfx, Struct s) {
@@ -199,7 +250,7 @@ public class GirWriter : CodeVisitor {
 		process_includes (c);
 		if (glib_mode)
 			classname = "%s%s".printf (nspace, classname);
-		externs += "  <object name=\""+classname+"\">\n"; // TODO: parent="" type-name="" get-type=""
+		externs += "  <record name=\""+classname+"\">\n"; // TODO: parent="" type-name="" get-type=""
 // TODO: print ("PARENT FOR "+classname+" IS: "+c.parent_node.type_name+"\n");
 		// parent=\"\"
 		foreach (var e in c.get_enums ())
@@ -219,11 +270,12 @@ public class GirWriter : CodeVisitor {
 */
 		foreach (var m in c.get_methods ())
 			walk_method (m);
-		externs += "  </object>\n";
+		externs += "  </record>\n";
 		classname = "";
 	}
 
 	public void walk_enum (Vala.Enum e) {
+#if NOT_YET_IMPLEMENTED
 		var enumname = classname + e.name;
 		var tmp = "  <enum name=\""+enumname+"\">\n"; // type-name=\""+e.name+"\" get-type=\"\">\n";
 		//enums += "/* enum: %s (%s) */\n".printf ( e.name, e.get_cname ());
@@ -237,6 +289,7 @@ public class GirWriter : CodeVisitor {
 		}
 		tmp += "  </enum>\n";
 		enums = tmp + "\n" + enums;
+#endif
 	}
 
 	private inline bool is_generic(string type) {
@@ -269,22 +322,21 @@ public class GirWriter : CodeVisitor {
 		string type = is_static?"function":"method";
 		if (classname != "" && !is_static)
 			type = "method";
-		if (is_constructor)
+		if (is_constructor) {
 			type = "constructor";
+			alias = "new";
+			void_return = false;
+			ret = nspace+"."+classname;
+		}
 		//externs += "<"+type+" name=\""+alias+"\" c:identifier=\""+cname+"\">\n";
 		externs += "<"+type+" name=\""+alias+"\" c:identifier=\""+cname+"\">\n";
-		if (void_return) {
-			externs += "  <return-type type=\"void\"/>\n";
-		} else {
-
+			//externs += "  <return-type type=\"void\"/>\n";
+		externs += "  <return-value transfer-ownership=\"full\">\n";
+		if (!void_return) {
 			var rtype = get_ctype (ret);
-			externs += "  <return-type type=\""+rtype+"\" />\n";
-/*
-			externs += "    <return-value transfer-ownership=\"none\">\n";
-			externs += "      <type name=\""+vret+"\" c:type=\""+ret+"\"/>\n";
-			externs += "    </return-value>\n";
-*/
-		}
+			externs += "    <type name=\""+girtype (ret)+"\" c:type=\""+rtype+"\"/>\n";
+		} else externs += "    <type name=\"none\"/>\n";
+		externs += "  </return-value>\n";
 
 		var parameters = m.get_parameters ();
 		if (parameters.size>0) {
@@ -294,7 +346,7 @@ public class GirWriter : CodeVisitor {
 				DataType? bar = foo.variable_type;
 				if (bar == null)
 					continue;
-				string? arg_type = bar.to_string ();
+				string? arg_type = girtype (bar.to_string ());
 				string? arg_ctype = get_ctype (CCodeBaseModule.get_ccode_name (bar));
 				externs += "    <parameter name=\""+arg_name+"\" transfer-ownership=\"none\">\n";
 				externs += "      <type name=\""+arg_type+"\" c:type=\""+arg_ctype+"\"/>\n";
@@ -315,10 +367,11 @@ public class GirWriter : CodeVisitor {
 
 		nspace = ns.name;
 		process_includes (ns);
-
-externs += "<namespace version=\"1.0\" name=\""+nspace+"\">\n";
+//externs += "<namespace version=\"1.0\" name=\""+nspace+"\">\n";
 		//if (pkgmode && sr.file.filename.index_of (pkgname) == -1)
 		//	return;
+		foreach (var f in ns.get_constants ())
+			walk_constant (f);
 		foreach (var f in ns.get_fields ())
 			walk_field (f);
 		foreach (var e in ns.get_enums ())
@@ -330,7 +383,7 @@ externs += "<namespace version=\"1.0\" name=\""+nspace+"\">\n";
 		foreach (var c in ns.get_classes ())
 			walk_class ("", c);
 		//ns.accept_children (this);
-externs += "</namespace>\n";
+//externs += "</namespace>\n";
 	}
 
 	public void write_file (CodeContext context, string filename) {
@@ -346,10 +399,11 @@ externs += "</namespace>\n";
 			"	xmlns=\"http://www.gtk.org/introspection/core/1.0\"\n"+
 			"	xmlns:c=\"http://www.gtk.org/introspection/c/1.0\"\n"+
 			"	xmlns:glib=\"http://www.gtk.org/introspection/glib/1.0\">\n");
-		stream.printf ("  <namespace version=\"1.0\" name=\""+modulename+"\">\n");
+		stream.printf ("  <package name=\""+modulename+"-1.0\"/>\n");
 		if (includefiles.length () > 0)
 			foreach (var inc in includefiles)
 				stream.printf ("  <c:include name=\"%s\"/>\n", inc);
+		stream.printf ("  <namespace version=\"1.0\" name=\""+modulename+"\">\n");
 
 		stream.printf ("%s\n", enums);
 		stream.printf ("%s\n", externs);
