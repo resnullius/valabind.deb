@@ -1,51 +1,64 @@
-/* Copyleft 2009-2011 -- pancake // nopcode.org */
+/* Copyleft 2009-2012 -- pancake // nopcode.org */
 
-static string[] files;
-static string includefile;
-static string vapidir;
-static bool show_version;
-static bool show_externs;
-static bool glibmode;
-static bool cxxmode;
-static bool cxxoutput;
-static bool gearoutput;
-static bool swigoutput;
-static bool giroutput;
-static string modulename;
-static string? output;
-static string? useprofile;
+private static string[] files;
+private static string vapidir;
+private static bool show_version;
+private static bool glibmode;
+private static bool cxxmode;
+private static bool cxxoutput;
+private static bool nodeoutput;
+private static bool swigoutput;
+private static bool giroutput;
+private static string modulename;
+private static string? output;
 [CCode (array_length = false, array_null_terminated = true)]
-static string[] packages;
+private static string[] packages;
+[CCode (array_length = false, array_null_terminated = true)]
+private static string[] include_dirs;
+[CCode (array_length = false, array_null_terminated = true)]
+private static string[] namespaces;
+
+/* helpers */
+public void notice (string msg) {
+	stderr.printf ("\x1b[34;1mNOTICE\x1b[0m %s\n", msg);
+}
+
+public void warning (string msg) {
+	stderr.printf ("\x1b[33;1mWARNING\x1b[0m %s\n", msg);
+}
+
+public void error (string msg) {
+	stderr.printf ("\x1b[31;1mERROR\x1b[0m %s\n", msg);
+	Posix.exit (1);
+}
 
 private const OptionEntry[] options = {
 	{ "pkg", 0, 0, OptionArg.STRING_ARRAY,
-	  ref packages, "Include binding for PACKAGE", "PACKAGE..." },
+	  ref packages, "include binding for PACKAGE", "PACKAGE..." },
 	{ "vapidir", 'V', 0, OptionArg.STRING,
-	  ref vapidir, "define alternative vapi directory", null },
-	{ "include", 'i', 0, OptionArg.STRING,
-	  ref includefile, "include file", null },
-	{ "externs", 'e', 0, OptionArg.NONE,
-	  ref show_externs, "render externs", null },
+	  ref vapidir, "define alternative vapi directory", "VAPIDIR" },
+	{ "include-dir", 'I', 0, OptionArg.STRING_ARRAY,
+	  ref include_dirs, "add include path", "INCLUDEDIR" },
 	{ "version", 'v', 0, OptionArg.NONE,
 	  ref show_version, "show version information", null },
 	{ "output", 'o', 0, OptionArg.STRING,
-	  ref output, "specify output file name", null },
+	  ref output, "specify output file name", "OUTPUT" },
 	{ "module", 'm', 0, OptionArg.STRING,
 	  ref modulename, "specify module name", "NAME" },
-	{ "profile", 'p', 0, OptionArg.NONE,
-	  ref useprofile, "select Vala profile (posix, gobject, dova)", "posix" },
-	{ "glib", 'g', 0, OptionArg.NONE,
-	  ref glibmode, "work in glib/gobject mode", null },
+	{ "namespace", 'N', 0, OptionArg.STRING_ARRAY,
+	  ref namespaces, "include namespace in the output", "NSPACE" },
 	{ "cxx-swig", 'x', 0, OptionArg.NONE,
-	  ref cxxmode, "generate c++ code for SWIG", null },
-	{ "swig", '\0', 0, OptionArg.NONE,
-	  ref swigoutput, "generate swig interface code (default)", null },
-	{ "gear", '\0', 0, OptionArg.NONE,
-	  ref gearoutput, "generate gearbox interface code", null },
-	{ "gir", '\0', 0, OptionArg.NONE,
+	  ref cxxmode, "generate C++ code for SWIG", null },
+	{ "glib", 0, 0, OptionArg.NONE,
+	  ref glibmode, "call g_type_init before any constructor", null },
+	{ "swig", 0, 0, OptionArg.NONE,
+	  ref swigoutput, "generate swig interface code", null },
+	{ "node-ffi", 0, 0, OptionArg.NONE,
+	  ref nodeoutput, "generate node-ffi interface code", null },
+	{ "gir", 0, 0, OptionArg.NONE,
 	  ref giroutput, "generate GIR (GObject-Introspection-Runtime)", null },
-	{ "cxx", '\0', 0, OptionArg.NONE,
-	  ref cxxoutput, "output C++ code instead of SWIG interface", null },
+	{ "cxx", 0, 0, OptionArg.NONE,
+	  ref cxxoutput, "generate C++ interface code", null },
 	{ "", 0, 0, OptionArg.FILENAME_ARRAY,
 	  ref files, "vala/vapi input files", "FILE FILE .." },
 	{ null }
@@ -71,54 +84,47 @@ int main (string[] args) {
 		return 0;
 	}
 
-	if (modulename == null) {
-		stderr.printf ("No modulename specified. Use --module or --help\n");
-		return 1;
-	}
+	if (modulename == null)
+		error ("No modulename specified. Use --module or --help");
 
-	if (files.length == 0) {
-		stderr.printf ("No files given\n");
-		return 1;
-	}
+	if (files.length == 0)
+		error ("No files given");
 
+	ValabindWriter writer = null;
 	int count = 0;
-	if (swigoutput) count++;
-	if (gearoutput) count++;
-	if (giroutput) count++;
-	if (cxxoutput) count++;
-	if (count>1) {
-		stderr.printf ("Cannot use --swig, --gir, --gear or --cxx together\n");
-		return 1;
-	}
+	if (swigoutput && count++ == 0)
+		writer = new SwigWriter (cxxmode);
+	if (nodeoutput && count++ == 0)
+		writer = new NodeFFIWriter ();
+	if (giroutput && count++ == 0)
+		writer = new GirWriter ();
+	if (cxxoutput && count++ == 0)
+		writer = new CxxWriter ();
+	if (count == 0)
+		error ("No output mode specified. Try --help\n");
+	else if (count > 1)
+		error ("Cannot specify more than one output mode\n");
 
-	string profile = (useprofile!=null)? useprofile: "posix";
-	if (glibmode) profile = "gobject";
-	// TODO: dova?
+	writer.modulename = modulename;
+	writer.include_dirs = include_dirs;
+	writer.namespaces = namespaces;
 
-	var vbc = new ValabindCompiler (modulename, vapidir, profile);
+	writer.init (vapidir, glibmode);
 	if (packages != null)
-		foreach (var pkg in packages) {
-			print ("Adding dependency "+pkg+"\n");
-			vbc.add_external_package (pkg);
-		}
+		foreach (var pkg in packages)
+			writer.add_external_package (pkg);
 
 	// TODO: passing more than one source doesnt seems to work :/
 	foreach (var file in files) {
 		if (file.index_of (".vapi") == -1) {
-			vbc.pkgmode = true;
-			vbc.pkgname = file;
+			writer.pkgmode = true;
+			writer.pkgname = file;
 		}
-		vbc.add_source_file (file);
+		writer.add_source_file (file);
 	}
-	vbc.parse ();
+	writer.parse ();
 	if (output == null)
-		output = "%s.%s".printf (modulename,
-			giroutput?"gir":
-			gearoutput?"gear":
-			cxxoutput?"cxx": "i");
-	if (gearoutput) vbc.emit_gear (output, show_externs, glibmode, cxxmode, includefile);
-	else if (giroutput) vbc.emit_gir (output, show_externs, glibmode, cxxmode, includefile);
-	else if (cxxoutput) vbc.emit_cxx (output, show_externs, glibmode, cxxmode, includefile);
-	else vbc.emit_swig (output, show_externs, glibmode, true, includefile);
+		output = writer.get_filename (modulename);
+	writer.write (output);
 	return 0;
 }
