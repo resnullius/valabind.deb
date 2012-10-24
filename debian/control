@@ -5,13 +5,14 @@ Maintainer: Sebastian Reichel <sre@debian.org>
 Build-Depends: debhelper (>= 8),
                libvala-0.14-dev,
                valac-0.14
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Vcs-Browser: http://git.debian.org/?p=pkg-vala/valabind.git
 Vcs-Git: git://git.debian.org/pkg-vala/valabind.git
 
 Package: valabind
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
 Suggests: gobject-introspection, swig, valac
 Description: convert vapi files to SWIG, C++, GIR or GEAR files
  Valabind is a tool to parse vala or vapi files and transform them into SWIG
