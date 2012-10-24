@@ -1,6 +1,7 @@
 valabind (0.7.2-1) UNRELEASED; urgency=low
 
   * new upstream release
+  * build depend on vala 0.16
 
  -- Sebastian Reichel <sre@debian.org>  Thu, 25 Oct 2012 00:53:35 +0200
 

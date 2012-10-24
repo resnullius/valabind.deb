@@ -3,8 +3,8 @@ Section: devel
 Priority: optional
 Maintainer: Sebastian Reichel <sre@debian.org>
 Build-Depends: debhelper (>= 8),
-               libvala-0.14-dev,
-               valac-0.14
+               libvala-0.16-dev,
+               valac-0.16
 Standards-Version: 3.9.3
 Vcs-Browser: http://git.debian.org/?p=pkg-vala/valabind.git
 Vcs-Git: git://git.debian.org/pkg-vala/valabind.git
