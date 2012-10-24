@@ -1,10 +1,41 @@
 #!/bin/sh
-# Copyleft valabind 2009-2011, pancake at nopcode.org
+# Copyleft valabind 2009-2012, pancake at nopcode.org
 
 LANG=$1
 MOD=$2
+
+show_help () {
+  echo "Usage: valabind-cc [lang] [module-name] [-flags] vapifile .."
+  echo "Example: valabind-cc python r_bp -I/usr/include/r_bp r_bp.vapi"
+  echo "  lang: python, guile, go, ruby, perl, lua, java, csharp, ..."
+  echo "  --help,-h      show this help message"
+  echo "  --version      show version of valabind"
+  echo "  --vapidir=dir  specify path to vapi files"
+  echo "  --glib         assume vapi source is glib/gobject based"
+  echo "  --test [lang]  test if it is possible to build"
+  echo "  -x             generate C++ swig code"
+  echo "  -X             output C++ instead of SWIG interface"
+  echo "  -I[path]       add includepath for SWIGFLAGS and CFLAGS"
+  echo "  -V[path]       add includepath for vapi files"
+  echo "  -L[path]       append library path to LDFLAGS"
+  echo "  -l[lib]        append to LDFLAGS to link a library"
+  echo "  -C             do not compile, just let the .c/.cxx and .i files"
+  echo "  -n             do not generate .i/.c/.cxx code, but compile it"
+  echo "  -N[nspace]     include namespace in the output"
+  echo " Environment:"
+  echo "  VALABIND_DEBUG if not empty show stderr of commands"
+  echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
+  echo "  SWIGFLAGS      extra flags to be passed to swig"
+  echo "  SOEXT          force specific extension for shared library (so, dll, dylib)"
+  echo "  SWIG           path to swig program"
+  exit 0
+}
+
 OMOD=${MOD}
 [ -z "${SWIG}" ] && SWIG=swig
+[ -z "${LANG}" ] && show_help
+[ -z "${CC}" ] && CC=gcc
+[ -z "${CXX}" ] && CXX=g++
 COMPILE=Yes
 ARG_VAPIDIR=""
 EXT="c"
@@ -20,7 +51,7 @@ if [ -z "${SOEXT}" ]; then
   fi
 fi
 if [ -z "${VALABIND_DEBUG}" ]; then
-  NULLPIPE=">/dev/null 2>&1"
+  NULLPIPE=">/dev/null"
 else
   NULLPIPE=""
 fi
@@ -28,33 +59,9 @@ fi
 use_cxx() {
     CC="${CXX}"
     EXT="cxx"
+    CFLAGS="${CFLAGS} ${CXXFLAGS}"
     SWIGFLAGS="-c++ ${SWIGFLAGS}"
     VALABINDFLAGS="-x ${VALABINDFLAGS}"
-}
-
-show_help () {
-  echo "Usage: valabind-cc [lang] [module-name] [-flags] vapifile .."
-  echo "Example: valabind-cc python r_bp -I/usr/include/r_bp r_bp.vapi"
-  echo "  lang: python, guile, go, ruby, perl, lua, java, csharp, ..."
-  echo "  --help,-h      show this help message"
-  echo "  --version      show version of valabind"
-  echo "  --vapidir=dir  specify path to vapi files"
-  echo "  --glib         assume vapi source is glib/gobject based"
-  echo "  --test [lang]  test if it is possible to build"
-  echo "  -x             generate C++ swig code"
-  echo "  -X             output C++ instead of SWIG interface"
-  echo "  -I[path]       add includepath for SWIGFLAGS and CFLAGS"
-  echo "  -L[path]       append library path to LDFLAGS"
-  echo "  -l[lib]        append to LDFLAGS to link a library"
-  echo "  -C             do not compile, just let the .c/.cxx and .i files"
-  echo "  -n             do not generate .i/.c/.cxx code, but compile it"
-  echo " Environment:"
-  echo "  VALABIND_DEBUG if not empty show stderr of commands"
-  echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
-  echo "  SWIGFLAGS      extra flags to be passed to swig"
-  echo "  SOEXT          force specific extension for shared library (so, dll, dylib)"
-  echo "  SWIG           path to swig program"
-  exit 0
 }
 
 TEST=0
@@ -63,8 +70,8 @@ case "$1" in
   TEST=1
   LANG=$2
   ;;
-"--version"|"-V")
-  valabind --version
+"--version")
+  printf "valabind " ; valabind --version
   ${SWIG} -version | grep SWIG
   ${CC} --version | grep ${CC}
   exit 0
@@ -74,11 +81,11 @@ case "$1" in
   ;;
 esac
 
-[ -z "${LANG}" ] && show_help
-[ -z "${CC}" ] && CC=gcc
-[ -z "${CXX}" ] && CXX=g++
-
+SWIG="${SWIG} -small"
 case "${LANG}" in
+"nodejs"|"node"|"node-ffi")
+  node --version >/dev/null 2>&1 || exit 1
+  ;;
 "guile")
   use_cxx
   CFLAGS="${CFLAGS} `guile-config compile 2>/dev/null`"
@@ -86,6 +93,7 @@ case "${LANG}" in
   ;;
 "python")
   use_cxx
+  LDFLAGS="-L/usr/local/lib -L/usr/pkg/lib"
   if [ -n "`echo ${CXX} | grep mingw`" ]; then
     CFLAGS="${CFLAGS} -I${HOME}/.wine/drive_c/Python27/include"
     LDFLAGS="${LDFLAGS} -L${HOME}/.wine/drive_c/Python27/libs -lpython27"
@@ -99,7 +107,7 @@ case "${LANG}" in
       fi
     done
     if [ -z "$PYCFG" ]; then
-      printf "No python-config found"
+      echo "No valid PYTHON_CONFIG command found" >&2
       exit 1
     fi
     CFLAGS="${CFLAGS} `$PYCFG --cflags | sed -e 's,-arch .*,,g'`"
@@ -110,10 +118,10 @@ case "${LANG}" in
   ;;
 "ruby")
   if [ "`ruby --version 2>/dev/null | grep 1.8`" ]; then
-    RB_CFLAGS=`ruby -e 'require "mkmf"; print "-I" + Config::CONFIG["archdir"];' 2>/dev/null`
+    RB_CFLAGS=`ruby -e 'require "mkmf"; print "-I" + RbConfig::CONFIG["archdir"];' 2>/dev/null`
   else
   if [ "`ruby --version 2>/dev/null | grep 1.9`" ]; then
-    RB_CFLAGS=`ruby -e 'require "mkmf"; a=Config::CONFIG["rubyhdrdir"]; print "-I#{a} -I#{a}/" + Config::CONFIG["arch"];'`
+    RB_CFLAGS=`ruby -e 'require "mkmf"; a=RbConfig::CONFIG["rubyhdrdir"]; print "-I#{a} -I#{a}/" + RbConfig::CONFIG["arch"];'`
   fi ; fi
   CFLAGS="${CFLAGS} ${RB_CFLAGS}"
   ;;
@@ -132,8 +140,8 @@ case "${LANG}" in
   fi ; fi
   ;;
 "php5")
-  CFLAGS="`php-config --includes` `pkg-config --libs libpng`"
-  LDFLAGS=`php-config --libs`
+  CFLAGS="`php-config --includes 2>/dev/null` `pkg-config --libs libpng 2>/dev/null`"
+  LDFLAGS=`php-config --libs 2>/dev/null`
   ;;
 "lua")
   if [ -f /usr/include/lua5.1/lua.h ]; then
@@ -155,12 +163,18 @@ while : ; do
   if [ "`echo $1 | grep -- '-I'`" ]; then
     CFLAGS="${CFLAGS} $1"
     SWIGFLAGS="$1 ${SWIGFLAGS}"
+    VALABINDFLAGS="`echo $1|sed -e 's,^-I,-I ,'` ${VALABINDFLAGS}"
+  elif [ "`echo $1 | grep -- '-V'`" ]; then
+    CFLAGS="${CFLAGS} $1"
+    VALABINDFLAGS="`echo $1|sed -e 's,^-V,-V ,'` ${VALABINDFLAGS}"
   elif [ "`echo $1 | grep -- '--vapidir'`" ]; then
     ARG_VAPIDIR="`echo $1|sed -e 's,=, ,'`"
   elif [ "`echo $1 | grep -- '-x'`" ]; then
     use_cxx
   elif [ "`echo $1 | grep -- '-n'`" ]; then
     NOGEN=1
+  elif [ "`echo $1 | grep -- '-N'`" ]; then
+    VALABINDFLAGS="`echo $1|sed -e 's,^-N,-N ,'` ${VALABINDFLAGS}"
   elif [ "`echo $1 | grep -- '-X'`" ]; then
     EXT="cxx"
     CXXOUT=1
@@ -180,7 +194,11 @@ while : ; do
   shift
 done
 
-SWIGCPP="-DG_BEGIN_DECLS -DG_END_DECLS -DG_GNUC_CONST"
+SWIGCPP="-DG_BEGIN_DECLS -DG_END_DECLS -DG_GNUC_CONST -DSWIG_PYTHON_SILENT_MEMLEAK"
+
+# strip problematic cflags. can be problematic if not used
+CFLAGS="`echo "${CFLAGS}" | sed -e 's,-pie,,g' -e 's,-PIE,,g'`"
+LDFLAGS="`echo "${LDFLAGS}" | sed -e 's,-pie,,g' -e 's,-PIE,,g'`"
 
 if [ "$CXXOUT" = 1 ]; then
   echo valabind -X ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES}
@@ -193,32 +211,45 @@ if [ "$CXXOUT" = 1 ]; then
 #  echo ${CXX} ${MOD}.cxx $@ -fPIC -shared ${MOD}.cxx ${CXXFLAGS} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS}
 #  ${CXX} ${MOD}.cxx $@ -fPIC -shared ${MOD}.cxx ${CXXFLAGS} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} > /dev/null 2>&1
 elif [ "$TEST" = 1 ]; then
-  DIR=`mktemp -d /tmp/tmp.XXXXXX`
-  if [ ! $? = 0 ]; then
-    echo "Cannot create temporary directory"
-    exit 1
-  fi
-  cd ${DIR}
-  MOD=test # hack to fix guile
-  echo "%module ${MOD}" > ${MOD}.i
-  eval echo ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
-  eval ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
-  if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
-  if [ -n "${QUITE}" ]; then
-    echo ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} 
-  fi
-  eval ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} ${NULLPIPE}
-  if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
-  rm -rf ${DIR}
+  case "${LANG}" in
+  "nodejs"|"node"|"node-ffi")
+    exec node --version > /dev/null 2>&1
+    ;;
+  *)
+    DIR=`mktemp -d /tmp/tmp.XXXXXX`
+    if [ ! $? = 0 ]; then
+      echo "Cannot create temporary directory"
+      exit 1
+    fi
+    cd ${DIR}
+    MOD=test # hack to fix guile
+    echo "%module ${MOD}" > ${MOD}.i
+    eval echo ${SWIG} -O -o ${MOD}_wrap.${EXT} ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
+    eval ${SWIG} -O -o ${MOD}_wrap.${EXT} ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
+    if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
+    eval echo ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} ${NULLPIPE}
+    eval ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} ${NULLPIPE}
+    if [ ! $? = 0 ]; then rm -rf ${DIR} ; exit 1 ; fi
+    rm -rf ${DIR}
+    ;;
+  esac
 else
-  if [ "${NOGEN}" = 0 ]; then
-    echo valabind ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES}
-    valabind ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES} || exit 1
-    eval echo ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
-    ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i || exit 1
-  fi
-  if [ -n "${COMPILE}" ]; then
-    echo ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS}
-    ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} || exit 1
-  fi
+  case "${LANG}" in
+  "nodejs"|"node"|"node-ffi")
+    eval echo valabind --node-ffi ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.js -m ${MOD} ${FILES}
+    eval valabind --node-ffi ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.js -m ${MOD} ${FILES} ${NULLPIPE}
+    exit $?
+    ;;
+  *)
+    if [ "${NOGEN}" = 0 ]; then
+      echo valabind --swig ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES}
+      valabind --swig ${VALABINDFLAGS} ${ARG_VAPIDIR} -o ${MOD}.i -m ${MOD} ${FILES} || exit 1
+      eval echo ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i ${NULLPIPE}
+      ${SWIG} -O -o ${MOD}_wrap.cxx ${SWIGCPP} ${SWIGFLAGS} -${LANG} ${MOD}.i || exit 1
+    fi
+    if [ -n "${COMPILE}" ]; then
+      eval echo ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${SWIGCPP} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} ${NULLPIPE}
+      ${CC} $@ -fPIC -shared ${MOD}_wrap.${EXT} ${SWIGCPP} ${CFLAGS} -o ${OMOD}.${SOEXT} ${LDFLAGS} || exit 1
+    fi
+  esac
 fi

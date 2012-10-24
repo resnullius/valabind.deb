@@ -1,1 +1,1 @@
-const string version_string = "valabind 0.6.4 - pancake@nopcode.org";
+const string version_string = "0.7.2";
