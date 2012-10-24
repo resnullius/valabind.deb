@@ -1,14 +1,14 @@
-Format: http://dep.debian.net/deps/dep5/
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: http://hg.youterm.com/valabind/
 
 Files: *
-Copyright: 2009-2011, pancake <pancake@nopcode.org>
+Copyright: 2009-2012, pancake <pancake@nopcode.org>
 License: GPL-3
  On Debian systems, the complete text of the GPL-3 can be found in
  /usr/share/common-licenses/GPL-3.
 
 Files: debian/*
-Copyright: 2011, Sebastian Reichel <sre@debian.org>
+Copyright: 2011-2012, Sebastian Reichel <sre@debian.org>
 License: ISC
  Permission to use, copy, modify, and/or distribute this software for any purpose with
  or without fee is hereby granted, provided that the above copyright notice and this
