@@ -2,7 +2,7 @@ Source: valabind
 Section: devel
 Priority: optional
 Maintainer: Sebastian Reichel <sre@debian.org>
-Build-Depends: debhelper (>= 8),
+Build-Depends: debhelper (>= 9),
                libvala-0.16-dev,
                valac-0.16
 Standards-Version: 3.9.3
