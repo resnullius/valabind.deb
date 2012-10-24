@@ -1,10 +1,10 @@
-valabind (0.7.2-1) UNRELEASED; urgency=low
+valabind (0.7.2-1) unstable; urgency=low
 
   * new upstream release
-  * build depend on vala 0.16
+  * build depend on vala 0.16 (Closes: #675671)
   * bump compat level
 
- -- Sebastian Reichel <sre@debian.org>  Thu, 25 Oct 2012 00:53:35 +0200
+ -- Sebastian Reichel <sre@debian.org>  Thu, 25 Oct 2012 01:05:39 +0200
 
 valabind (0.6.4-1) unstable; urgency=low
 
