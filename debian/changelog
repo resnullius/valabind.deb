@@ -5,6 +5,7 @@ valabind (0.7.4-1) UNRELEASED; urgency=low
     - Support for D bindings.
     - Other fixes.
   * debian/control: Add myself to Uploaders.
+  * debian/patches: Add suport for uint types (backported from d2a4162a47).
 
  -- David Martínez Moreno <ender@debian.org>  Thu, 12 Dec 2013 02:04:04 -0800
 

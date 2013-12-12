@@ -1,0 +1,15 @@
+Description: Add uint type to swigwriter.
+ This patch backports d2a4162a47 to have support for uint, just in case
+ it's needed.
+Author: pancake@nopcode.org
+
+--- a/swigwriter.vala
++++ b/swigwriter.vala
+@@ -121,6 +121,7 @@
+ 				return "char";
+ 			case "gint":
+ 				return "int";
++			case "uint":
+ 			case "guint":
+ 				return "unsigned int";
+ 			case "glong":
