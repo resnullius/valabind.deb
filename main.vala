@@ -1,13 +1,15 @@
-/* Copyleft 2009-2012 -- pancake // nopcode.org */
-
+/* Copyright GPL3 - 2009-2013 -- pancake // nopcode.org */
 private static string[] files;
 private static string vapidir;
+private static string library;
 private static bool show_version;
 private static bool glibmode;
 private static bool cxxmode;
+private static bool dlangoutput;
 private static bool cxxoutput;
 private static bool nodeoutput;
 private static bool swigoutput;
+private static bool ctypesoutput;
 private static bool giroutput;
 private static string modulename;
 private static string? output;
@@ -17,22 +19,12 @@ private static string[] packages;
 private static string[] include_dirs;
 [CCode (array_length = false, array_null_terminated = true)]
 private static string[] namespaces;
-
-/* helpers */
-public void notice (string msg) {
-	stderr.printf ("\x1b[34;1mNOTICE\x1b[0m %s\n", msg);
-}
-
-public void warning (string msg) {
-	stderr.printf ("\x1b[33;1mWARNING\x1b[0m %s\n", msg);
-}
-
-public void error (string msg) {
-	stderr.printf ("\x1b[31;1mERROR\x1b[0m %s\n", msg);
-	Posix.exit (1);
-}
+[CCode (array_length = false, array_null_terminated = true)]
+private static string[] defines;
 
 private const OptionEntry[] options = {
+	{ "define", 'D', 0, OptionArg.STRING_ARRAY,
+	  ref defines, "define SYMBOL", "SYMBOL" },
 	{ "pkg", 0, 0, OptionArg.STRING_ARRAY,
 	  ref packages, "include binding for PACKAGE", "PACKAGE..." },
 	{ "vapidir", 'V', 0, OptionArg.STRING,
@@ -54,11 +46,17 @@ private const OptionEntry[] options = {
 	{ "swig", 0, 0, OptionArg.NONE,
 	  ref swigoutput, "generate swig interface code", null },
 	{ "node-ffi", 0, 0, OptionArg.NONE,
-	  ref nodeoutput, "generate node-ffi interface code", null },
+	  ref nodeoutput, "generate node-ffi interface", null },
+	{ "library", 'l', 0, OptionArg.STRING,
+	  ref library, "library to link", null },
+	{ "ctypes", 0, 0, OptionArg.NONE,
+	  ref ctypesoutput, "generate python ctypes interface", null },
 	{ "gir", 0, 0, OptionArg.NONE,
 	  ref giroutput, "generate GIR (GObject-Introspection-Runtime)", null },
 	{ "cxx", 0, 0, OptionArg.NONE,
 	  ref cxxoutput, "generate C++ interface code", null },
+	{ "dlang", 0, 0, OptionArg.NONE,
+	  ref dlangoutput, "generate D bindings", null },
 	{ "", 0, 0, OptionArg.FILENAME_ARRAY,
 	  ref files, "vala/vapi input files", "FILE FILE .." },
 	{ null }
@@ -96,8 +94,12 @@ int main (string[] args) {
 		writer = new SwigWriter (cxxmode);
 	if (nodeoutput && count++ == 0)
 		writer = new NodeFFIWriter ();
+	if (ctypesoutput && count++ == 0)
+		writer = new CtypesWriter ();
 	if (giroutput && count++ == 0)
 		writer = new GirWriter ();
+	if (dlangoutput && count++ == 0)
+		writer = new DlangWriter ();
 	if (cxxoutput && count++ == 0)
 		writer = new CxxWriter ();
 	if (count == 0)
@@ -106,6 +108,7 @@ int main (string[] args) {
 		error ("Cannot specify more than one output mode\n");
 
 	writer.modulename = modulename;
+	writer.library = (library != null)? library: modulename;
 	writer.include_dirs = include_dirs;
 	writer.namespaces = namespaces;
 
@@ -113,6 +116,12 @@ int main (string[] args) {
 	if (packages != null)
 		foreach (var pkg in packages)
 			writer.add_external_package (pkg);
+
+	if (defines != null) {
+		foreach (string define in defines) {
+			writer.add_define(define);
+		}
+	}
 
 	// TODO: passing more than one source doesnt seems to work :/
 	foreach (var file in files) {
@@ -122,6 +131,7 @@ int main (string[] args) {
 		}
 		writer.add_source_file (file);
 	}
+
 	writer.parse ();
 	if (output == null)
 		output = writer.get_filename (modulename);

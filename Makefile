@@ -1,4 +1,6 @@
-VERSION=0.7.2
+_VERSION=0.7.3git
+#GIT_TIP=$(shell [ -d .git ] && git log HEAD^..HEAD 2>/dev/null |head -n1|cut -d ' ' -f2)
+GIT_TIP=$(shell git describe --tags)
 CONTACT=pancake@nopcode.org
 PWD:=$(shell pwd)
 DESTDIR?=
@@ -10,11 +12,19 @@ RTLIBS=gobject-2.0 glib-2.0
 VALAPKG:=$(shell ./getvv)
 BUILD?=build
 BIN=valabind
-SRC=config.vala main.vala valabindwriter.vala nodeffiwriter.vala girwriter.vala swigwriter.vala cxxwriter.vala
+SRC=config.vala main.vala valabindwriter.vala nodeffiwriter.vala utils.vala
+SRC+=girwriter.vala swigwriter.vala cxxwriter.vala ctypeswriter.vala dlangwriter.vala
 VAPIS:=$(SRC:%.vala=$(BUILD)/%.vapi)
 CSRC:=$(SRC:%.vala=$(BUILD)/%.c)
 VALA_FILTER=$(filter %.vala,$?)
-TEMPS=$(addprefix --use-fast-vapi=,$(filter-out $(VALA_FILTER:%.vala=$(BUILD)/%.vapi),$(VAPIS))) $(VALA_FILTER) $(patsubst %.vala,$(BUILD)/%.c,$(filter-out $?,$^))
+TEMPS=$(addprefix --use-fast-vapi=,$(filter-out $(VALA_FILTER:%.vala=$(BUILD)/%.vapi),$(VAPIS)))
+TEMPS+=$(VALA_FILTER) $(patsubst %.vala,$(BUILD)/%.c,$(filter-out $?,$^))
+
+ifneq ($(GIT_TIP),)
+VERSION=$(_VERSION)-$(GIT_TIP)
+else
+VERSION=$(_VERSION)
+endif
 
 all: $(BIN)
 
@@ -60,11 +70,9 @@ dist:
 	rm -rf valabind-$(VERSION)/.git
 	tar czvf valabind-$(VERSION).tar.gz valabind-$(VERSION)
 
-clean:
-	rm -rf $(BUILD) $(BIN)
-
-mrproper: clean
+mrproper clean:
 	rm -f config.vala
+	rm -rf $(BUILD) $(BIN)
 
 deinstall: uninstall
 
