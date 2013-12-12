@@ -1,0 +1,17 @@
+Description: Invalid keyword in manpge due to a typo.
+ Lintian was reporting a typo in one of the manpages.
+Author: David Martínez Moreno <ender@debian.org>
+Forwarded: no
+Last-Update: 2013-12-12
+
+--- valabind-0.7.4.orig/valabind.1
++++ valabind-0.7.4/valabind.1
+@@ -27,7 +27,7 @@ Valabind is a program written in Vala th
+ .Pp
+ SWIG opens the door to create bindings for Python, Perl, ruby, lua, and many other scripting languages.
+ .Pp
+-.Bl -tag -wdith Fl
++.Bl -tag -width Fl
+ .It Fl h
+ show help message
+ .It Fl o Ar OUTPUT

@@ -9,7 +9,9 @@ valabind (0.7.4-1) UNRELEASED; urgency=low
     - Convert valac-0.20 dependency to valac (>= 0.20).
     - Add Homepage and converted old Vcs links to the new URL format.
     - Upgrade Standards-Version to 3.9.5.
-  * debian/patches: Add support for uint types (backported from d2a4162a47).
+  * debian/patches:
+    - Add support for uint types (backported from d2a4162a47).
+    - Added a fix for an invalid keyword.
 
  -- David Martínez Moreno <ender@debian.org>  Thu, 12 Dec 2013 09:26:44 -0800
 
