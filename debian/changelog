@@ -1,3 +1,13 @@
+valabind (0.7.4-1) UNRELEASED; urgency=low
+
+  * New upstream release:
+    - Support for cTypes.
+    - Support for D bindings.
+    - Other fixes.
+  * debian/control: Add myself to Uploaders.
+
+ -- David Martínez Moreno <ender@debian.org>  Thu, 12 Dec 2013 02:04:04 -0800
+
 valabind (0.7.2-2) unstable; urgency=low
 
   * build depend on vala 0.20 (Closes: #709704)
