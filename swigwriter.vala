@@ -1,4 +1,4 @@
-/* Copyleft 2009-2012 -- pancake, eddyb */
+/* Copyleft 2009-2013 -- pancake, eddyb */
 
 using Vala;
 
@@ -20,7 +20,7 @@ public class SwigWriter : ValabindWriter {
 		return base_name+".i";
 	}
 
-	// FIXME duplicate from NodeFFIWriter
+	// FIXME duplicate from NodeFFIWriter and ctypeswriter
 	void add_includes (Symbol s) {
 		foreach (string i in CCodeBaseModule.get_ccode_header_filenames (s).split (",")) {
 			bool include = true;
@@ -48,6 +48,7 @@ public class SwigWriter : ValabindWriter {
 	string get_alias (string oname) {
 		string name = oname;
 		switch (oname) {
+			case "clone":
 			case "break":
 			case "delete":
 				name = "_"+oname;

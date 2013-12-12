@@ -1,9 +1,10 @@
-/* Copyleft 2009-2012 -- pancake // nopcode.org */
+/* Copyleft 2009-2013 -- pancake // nopcode.org */
 
 using Vala;
 
 public class ValabindWriter : CodeVisitor {
 	public string modulename;
+	public string library;
 	public bool pkgmode;
 	public string pkgname;
 	[CCode (array_length = false, array_null_terminated = true)]
@@ -42,6 +43,11 @@ public class ValabindWriter : CodeVisitor {
 		return (context.report.get_errors () == 0);
 	}
 
+	public void add_define (string define) {
+		notice ("Symbol defined "+define);
+		context.add_define(define);
+	}
+
 	public bool add_external_package (string pkg) {
 		notice ("Adding dependency "+pkg);
 		return context.add_external_package (pkg);
@@ -60,7 +66,8 @@ public class ValabindWriter : CodeVisitor {
 		bool found = FileUtils.test (path, FileTest.IS_REGULAR);
 		if (found) {
 			if (!pkgmode)
-				context.add_source_file (new SourceFile (context, SourceFileType.PACKAGE, path));
+				context.add_source_file (new SourceFile (
+					context, SourceFileType.PACKAGE, path));
 			source_files.append(path);
 		} else if (!add_package (context, path))
 			error ("Cannot find '%s'".printf (path));
@@ -73,11 +80,12 @@ public class ValabindWriter : CodeVisitor {
 			warning ("Empty add_package()?");
 			return true;
 		}
-		notice ("Adding dependency package "+pkg);
 
 		// ignore multiple occurences of the same package
 		if (context.has_package (pkg))
 			return true;
+
+		notice ("Adding dependency package "+pkg);
 
 		var package_path = context.get_vapi_path (pkg);
 		if (package_path == null) {
@@ -87,16 +95,19 @@ public class ValabindWriter : CodeVisitor {
 
 		if (pkgmode)
 			add_source_file (package_path);
-		context.add_source_file (new SourceFile (context, SourceFileType.PACKAGE, package_path));
+		context.add_source_file (new SourceFile (context,
+			SourceFileType.PACKAGE, package_path));
 		context.add_package (pkg);
 
-		var deps_filename = Path.build_filename (Path.get_dirname (package_path), "%s.deps".printf (pkg));
+		var deps_filename = Path.build_filename (Path.get_dirname (
+			package_path), "%s.deps".printf (pkg));
 		if (FileUtils.test (deps_filename, FileTest.EXISTS)) {
 			try {
 				string deps_content;
 				size_t deps_len;
 
-				FileUtils.get_contents (deps_filename, out deps_content, out deps_len);
+				FileUtils.get_contents (deps_filename,
+					out deps_content, out deps_len);
 				foreach (string dep in deps_content.split ("\n")) {
 					dep = dep.strip ();
 					if (dep != "") {
