@@ -1,11 +1,11 @@
 Description: Fix leftover version from git.
- Sergi forgot to bumo the vesion number.
+ Sergi forgot to bump the version number.
 Author: David Martínez Moreno <ender@debian.org>
-Forwarded: no
+Forwarded: not-needed
 Last-Update: 2013-12-15
 
---- valabind-0.7.4.orig/Makefile
-+++ valabind-0.7.4/Makefile
+--- a/Makefile
++++ b/Makefile
 @@ -1,4 +1,4 @@
 -_VERSION=0.7.3git
 +_VERSION=0.7.4

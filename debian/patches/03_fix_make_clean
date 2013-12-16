@@ -1,7 +1,7 @@
 Description: Leftover .c files in make clean.
  make clean forgets to remove the generated .c files.
 Author: David Martínez Moreno <ender@debian.org>
-Forwarded: no
+Forwarded: https://github.com/radare/valabind/pull/14
 Last-Update: 2013-12-15
 
 --- valabind-0.7.4.orig/Makefile

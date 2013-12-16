@@ -2,6 +2,10 @@ Description: Add uint type to swigwriter.
  This patch backports d2a4162a47 to have support for uint, just in case
  it's needed.
 Author: pancake@nopcode.org
+Origin: upstream, https://github.com/radare/valabind/commit/d2a4162a4747f62d1c658f1d1823fd36c75f89f9
+Reviewed-By: pancake@radare.org
+Last-Update: 2013-11-13
+
 
 --- a/swigwriter.vala
 +++ b/swigwriter.vala
