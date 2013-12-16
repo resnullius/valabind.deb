@@ -16,6 +16,10 @@ valabind (0.7.4-1) UNRELEASED; urgency=low
     - 02_manpage_typo: Added a fix for an invalid keyword.
     - 03_fix_make_clean: Fix leftover generated .c files.
     - 04_proper_version: Bump version from git to 0.7.4.
+    - 05_c-cpp-ldflags_support: Honor CFLAGS, CPPFLAGS and LDFLAGS.  This has
+      the amazing side effect of allowing fortified builds (e.g. -D
+      FORTIFY_SOURCE=2) and binaries with the read-only relocation flag.
+      Lintian is happy again.
 
  -- David Martínez Moreno <ender@debian.org>  Thu, 12 Dec 2013 09:26:44 -0800
 
