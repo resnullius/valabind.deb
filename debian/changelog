@@ -1,4 +1,4 @@
-valabind (0.7.4-1) UNRELEASED; urgency=low
+valabind (0.7.4-1) unstable; urgency=low
 
   * New upstream release:
     - Support for cTypes.
@@ -21,7 +21,7 @@ valabind (0.7.4-1) UNRELEASED; urgency=low
       FORTIFY_SOURCE=2) and binaries with the read-only relocation flag.
       Lintian is happy again.
 
- -- David Martínez Moreno <ender@debian.org>  Thu, 12 Dec 2013 09:26:44 -0800
+ -- David Martínez Moreno <ender@debian.org>  Mon, 16 Dec 2013 00:39:22 -0800
 
 valabind (0.7.2-2) unstable; urgency=low
 
