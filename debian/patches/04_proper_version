@@ -1,0 +1,14 @@
+Description: Fix leftover version from git.
+ Sergi forgot to bumo the vesion number.
+Author: David Martínez Moreno <ender@debian.org>
+Forwarded: no
+Last-Update: 2013-12-15
+
+--- valabind-0.7.4.orig/Makefile
++++ valabind-0.7.4/Makefile
+@@ -1,4 +1,4 @@
+-_VERSION=0.7.3git
++_VERSION=0.7.4
+ #GIT_TIP=$(shell [ -d .git ] && git log HEAD^..HEAD 2>/dev/null |head -n1|cut -d ' ' -f2)
+ GIT_TIP=$(shell git describe --tags)
+ CONTACT=pancake@nopcode.org
