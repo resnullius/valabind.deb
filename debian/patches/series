@@ -3,3 +3,4 @@
 03_fix_make_clean
 04_proper_version
 05_c-cpp-ldflags_support
+06_fix_ldflags_python_php5
