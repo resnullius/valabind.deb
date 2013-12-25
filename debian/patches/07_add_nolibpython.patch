@@ -1,0 +1,32 @@
+Description: Add a --nolibpython option to valabind-cc.
+ From Debian's Python Policy, Chapter 2.1:
+ .
+ Some distributions link extensions to libpython, but this is
+ not the case in Debian as symbols might as well be resolved
+ by /usr/bin/pythonX.Y which is not linked to libpython.
+ .
+ This patch adds a new option to valabind-cc to strip the -lpythonX.X from
+ the output of pythonX.Y-config --ldflags.
+Author: David Martínez Moreno <ender@debian.org>
+Forwarded: no
+Last-Update: 2013-12-25
+
+--- valabind-0.7.4.orig/valabind-cc
++++ valabind-0.7.4/valabind-cc
+@@ -23,6 +23,7 @@ show_help () {
+   echo "  -n             do not generate .i/.c/.cxx code, but compile it"
+   echo "  -N[nspace]     include namespace in the output"
+   echo "  -D[SYMBOL]       define vala symbol Symbol"
++  echo "  --nolibpython  do not include libpython in Python flags"
+   echo " Environment:"
+   echo "  VALABIND_DEBUG if not empty show stderr of commands"
+   echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
+@@ -201,6 +202,8 @@ while : ; do
+     echo ignored $1
+   elif [ "`echo $1 | grep -- '-D'`" ]; then
+     VALABINDFLAGS="`echo $1|sed -e 's,^-D,-D ,'` ${VALABINDFLAGS}"
++  elif [ "`echo $1 | grep -- '--nolibpython'`" ]; then
++    LDFLAGS="$(echo ${LDFLAGS} | sed -r 's,-lpython[0-9.]+,,g')"
+   else
+     FILES="$1 ${FILES}"
+   fi

@@ -1,3 +1,11 @@
+valabind (0.7.4-3) unstable; urgency=low
+
+  * debian/patches:
+    - 07_add_nolibpython: Add a --nolibpython option to valabind to be able to
+    comply with Debian Python Policy 2.1 (no linking binaries with libpython).
+
+ -- David Martínez Moreno <ender@debian.org>  Wed, 25 Dec 2013 03:01:19 -0800
+
 valabind (0.7.4-2) unstable; urgency=medium
 
   * debian/patches:

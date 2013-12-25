@@ -4,3 +4,4 @@
 04_proper_version
 05_c-cpp-ldflags_support
 06_fix_ldflags_python_php5
+07_add_nolibpython.patch
