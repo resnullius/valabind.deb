@@ -6,14 +6,15 @@ Description: Add a --nolibpython option to valabind-cc.
  by /usr/bin/pythonX.Y which is not linked to libpython.
  .
  This patch adds a new option to valabind-cc to strip the -lpythonX.X from
- the output of pythonX.Y-config --ldflags.
+ the output of pythonX.Y-config --ldflags.  It also makes the matching of
+ arguments more strict to prevent '-n' being matched with --nolibpython.
 Author: David Martínez Moreno <ender@debian.org>
 Forwarded: no
 Last-Update: 2013-12-25
 
---- valabind-0.7.4.orig/valabind-cc
-+++ valabind-0.7.4/valabind-cc
-@@ -23,6 +23,7 @@ show_help () {
+--- a/valabind-cc
++++ b/valabind-cc
+@@ -23,6 +23,7 @@
    echo "  -n             do not generate .i/.c/.cxx code, but compile it"
    echo "  -N[nspace]     include namespace in the output"
    echo "  -D[SYMBOL]       define vala symbol Symbol"
@@ -21,11 +22,53 @@ Last-Update: 2013-12-25
    echo " Environment:"
    echo "  VALABIND_DEBUG if not empty show stderr of commands"
    echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
-@@ -201,6 +202,8 @@ while : ; do
+@@ -171,36 +172,38 @@
+ 
+ while : ; do
+   [ -z "$1" ] && break
+-  if [ "`echo $1 | grep -- '-I'`" ]; then
++  if [ "`echo $1 | grep -- '^-I'`" ]; then
+     CFLAGS="${CFLAGS} $1"
+     SWIGFLAGS="$1 ${SWIGFLAGS}"
+     VALABINDFLAGS="`echo $1|sed -e 's,^-I,-I ,'` ${VALABINDFLAGS}"
+-  elif [ "`echo $1 | grep -- '-V'`" ]; then
++  elif [ "`echo $1 | grep -- '^-V'`" ]; then
+     CFLAGS="${CFLAGS} $1"
+     VALABINDFLAGS="`echo $1|sed -e 's,^-V,-V ,'` ${VALABINDFLAGS}"
+   elif [ "`echo $1 | grep -- '--vapidir'`" ]; then
+     ARG_VAPIDIR="`echo $1|sed -e 's,=, ,'`"
+-  elif [ "`echo $1 | grep -- '-x'`" ]; then
++  elif [ "`echo $1 | grep -- '^-x'`" ]; then
+     use_cxx
+-  elif [ "`echo $1 | grep -- '-n'`" ]; then
++  elif [ "`echo $1 | grep -- '^-n'`" ]; then
+     NOGEN=1
+-  elif [ "`echo $1 | grep -- '-N'`" ]; then
++  elif [ "`echo $1 | grep -- '^-N'`" ]; then
+     VALABINDFLAGS="`echo $1|sed -e 's,^-N,-N ,'` ${VALABINDFLAGS}"
+-  elif [ "`echo $1 | grep -- '-X'`" ]; then
++  elif [ "`echo $1 | grep -- '^-X'`" ]; then
+     EXT="cxx"
+     CXXOUT=1
+-  elif [ "`echo $1 | grep -- '-l'`" ]; then
++  elif [ "`echo $1 | grep -- '^-l'`" ]; then
+     LDFLAGS="$1 ${LDFLAGS}"
+-  elif [ "`echo $1 | grep -- '--glib'`" ]; then
++  elif [ "`echo $1 | grep -- '^--glib'`" ]; then
+     SWIGFLAGS="$1 ${SWIGFLAGS}"
+-  elif [ "`echo $1 | grep -- '-L'`" ]; then
++  elif [ "`echo $1 | grep -- '^-L'`" ]; then
+     LDFLAGS="$1 ${LDFLAGS}"
+-  elif [ "`echo $1 | grep -- '-C'`" ]; then
++  elif [ "`echo $1 | grep -- '^-C'`" ]; then
+     COMPILE=""
+-  elif [ "`echo $1 | grep -- '-pthread'`" ]; then
++  elif [ "`echo $1 | grep -- '^-pthread'`" ]; then
      echo ignored $1
-   elif [ "`echo $1 | grep -- '-D'`" ]; then
+-  elif [ "`echo $1 | grep -- '-D'`" ]; then
++  elif [ "`echo $1 | grep -- '^-D'`" ]; then
      VALABINDFLAGS="`echo $1|sed -e 's,^-D,-D ,'` ${VALABINDFLAGS}"
-+  elif [ "`echo $1 | grep -- '--nolibpython'`" ]; then
++  elif [ "`echo $1 | grep -- '^--nolibpython'`" ]; then
 +    LDFLAGS="$(echo ${LDFLAGS} | sed -r 's,-lpython[0-9.]+,,g')"
    else
      FILES="$1 ${FILES}"
