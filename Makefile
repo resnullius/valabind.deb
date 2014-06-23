@@ -1,4 +1,4 @@
-_VERSION=0.7.3git
+_VERSION=0.8.0
 #GIT_TIP=$(shell [ -d .git ] && git log HEAD^..HEAD 2>/dev/null |head -n1|cut -d ' ' -f2)
 GIT_TIP=$(shell git describe --tags)
 CONTACT=pancake@nopcode.org
@@ -7,7 +7,8 @@ DESTDIR?=
 PREFIX?=/usr
 MANDIR?=$(PREFIX)/share/man
 CC?=gcc
-VALAC?=valac -g --cc="$(CC)"
+VALAFLAGS:=$(foreach w,$(CPPFLAGS) $(CFLAGS) $(LDFLAGS),-X $(w))
+VALAC?=valac -g --cc="$(CC)" $(VALAFLAGS)
 RTLIBS=gobject-2.0 glib-2.0
 VALAPKG:=$(shell ./getvv)
 BUILD?=build
@@ -21,10 +22,18 @@ TEMPS=$(addprefix --use-fast-vapi=,$(filter-out $(VALA_FILTER:%.vala=$(BUILD)/%.
 TEMPS+=$(VALA_FILTER) $(patsubst %.vala,$(BUILD)/%.c,$(filter-out $?,$^))
 
 ifneq ($(GIT_TIP),)
-VERSION=$(_VERSION)-$(GIT_TIP)
+SGIT_TIP=$(shell echo ${GIT_TIP} | sed -e s,${_VERSION},,)
+else
+SGIT_TIP=$(GIT_TIP)
+endif
+ifneq ($(SGIT_TIP),)
+VERSION=$(_VERSION)-$(SGIT_TIP)
 else
 VERSION=$(_VERSION)
 endif
+
+INSTALL_MAN?=install -m0644
+INSTALL_PROGRAM?=install -m0755
 
 all: $(BIN)
 
@@ -32,7 +41,7 @@ all: $(BIN)
 
 $(BIN): $(SRC) | $(VAPIS)
 	@echo 'Compiling $(VALA_FILTER) -> $@'
-	@$(VALAC) -o $@ --pkg posix --pkg $(VALAPKG) --save-temps ${TEMPS}
+	$(VALAC) -o $@ --pkg posix --pkg $(VALAPKG) --save-temps ${TEMPS}
 	@mv $(VALA_FILTER:%.vala=%.c) $(BUILD)
 
 $(BUILD)/%.vapi: %.vala | $(BUILD)
@@ -51,10 +60,10 @@ install_dirs:
 	mkdir -p $(DESTDIR)$(MANDIR)/man1
 
 install: install_dirs
-	cp $(BIN).1 $(DESTDIR)$(MANDIR)/man1
-	cp $(BIN)-cc.1 $(DESTDIR)$(MANDIR)/man1
-	cp $(BIN) $(DESTDIR)$(PREFIX)/bin
-	cp $(BIN)-cc $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL_MAN) $(BIN).1 $(DESTDIR)$(MANDIR)/man1
+	$(INSTALL_MAN) $(BIN)-cc.1 $(DESTDIR)$(MANDIR)/man1
+	$(INSTALL_PROGRAM) $(BIN) $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL_PROGRAM) $(BIN)-cc $(DESTDIR)$(PREFIX)/bin
 
 symstall: install_dirs
 	chmod +x $(PWD)/$(BIN)-cc
@@ -64,15 +73,19 @@ symstall: install_dirs
 	ln -fs $(PWD)/$(BIN)-cc $(DESTDIR)$(PREFIX)/bin
 
 dist:
+	$(MAKE) shot GIT_TIP=
+
+shot:
 	rm -rf valabind-$(VERSION)
 	git clone . valabind-$(VERSION)
-	cd valabind-$(VERSION) && $(MAKE) config.vala #c
+	cd valabind-$(VERSION) && $(MAKE) config.vala
 	rm -rf valabind-$(VERSION)/.git
 	tar czvf valabind-$(VERSION).tar.gz valabind-$(VERSION)
 
 mrproper clean:
 	rm -f config.vala
 	rm -rf $(BUILD) $(BIN)
+	rm -rf *.c
 
 deinstall: uninstall
 
