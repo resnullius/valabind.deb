@@ -12,9 +12,11 @@ Author: David Martínez Moreno <ender@debian.org>
 Forwarded: no
 Last-Update: 2013-12-25
 
---- a/valabind-cc
-+++ b/valabind-cc
-@@ -23,6 +23,7 @@
+Index: valabind/valabind-cc
+===================================================================
+--- valabind.orig/valabind-cc
++++ valabind/valabind-cc
+@@ -24,6 +24,7 @@ show_help () {
    echo "  -n             do not generate .i/.c/.cxx code, but compile it"
    echo "  -N[nspace]     include namespace in the output"
    echo "  -D[SYMBOL]       define vala symbol Symbol"
@@ -22,7 +24,7 @@ Last-Update: 2013-12-25
    echo " Environment:"
    echo "  VALABIND_DEBUG if not empty show stderr of commands"
    echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
-@@ -171,36 +172,38 @@
+@@ -187,36 +188,38 @@ shift
  
  while : ; do
    [ -z "$1" ] && break

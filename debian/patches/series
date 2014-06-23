@@ -1,7 +1,1 @@
-01_add_uint_swigwriter
-02_manpage_typo
-03_fix_make_clean
-04_proper_version
-05_c-cpp-ldflags_support
-06_fix_ldflags_python_php5
-07_add_nolibpython.patch
+add_nolibpython.patch

@@ -1,3 +1,23 @@
+valabind (0.8.0-1) UNRELEASED; urgency=low
+
+  * New upstream release:
+    - Added OCaml support.
+    - Valabind is now aware of external LDFLAGS, CFLAGS et al.
+    - Merged most of the Debian patches.
+    - Support OS X in better ways.
+  * debian/control: Changed Build-Depends to vala-0.24 (closes: #738997,
+    #741807).
+  * debian/patches:
+    - 01_add_uint_swigwriter: Obsolete, removed.
+    - 02_manpage_typo: Merged.
+    - 03_fix_make_clean: Merged.
+    - 04_proper_version: Merged.
+    - 05_c-cpp-ldflags_support: Merged.
+    - 06_fix_ldflags_python_php5: Merged.
+    - 07_add_nolibpython.patch: Refreshed, renamed to add_nolibpython.patch.
+
+ -- David Martínez Moreno <ender@debian.org>  Mon, 23 Jun 2014 10:08:43 +0200
+
 valabind (0.7.4-4) unstable; urgency=medium
 
   * debian/control: Switched Sebastian and myself as Maintainer/Uploader.
