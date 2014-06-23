@@ -1,4 +1,4 @@
-valabind (0.8.0-1) UNRELEASED; urgency=low
+valabind (0.8.0-1) unstable; urgency=low
 
   * New upstream release:
     - Added OCaml support.
@@ -16,7 +16,7 @@ valabind (0.8.0-1) UNRELEASED; urgency=low
     - 06_fix_ldflags_python_php5: Merged.
     - 07_add_nolibpython.patch: Refreshed, renamed to add_nolibpython.patch.
 
- -- David Martínez Moreno <ender@debian.org>  Mon, 23 Jun 2014 10:08:43 +0200
+ -- David Martínez Moreno <ender@debian.org>  Mon, 23 Jun 2014 17:19:31 +0200
 
 valabind (0.7.4-4) unstable; urgency=medium
 
