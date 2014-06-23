@@ -7,7 +7,8 @@ MOD=$2
 show_help () {
   echo "Usage: valabind-cc [lang] [module-name] [-flags] vapifile .."
   echo "Example: valabind-cc python r_bp -I/usr/include/r_bp r_bp.vapi"
-  echo "  lang: ctypes, python, dlang, nodejs, guile, go, ruby, perl, lua, java, csharp, ..."
+  echo "  lang: ctypes, python, dlang, nodejs, ocaml, guile, go, ruby,"
+  echo "        perl, lua, java, csharp, ..."
   echo "  --help,-h      show this help message"
   echo "  --version      show version of valabind"
   echo "  --vapidir=dir  specify path to vapi files"
@@ -27,7 +28,7 @@ show_help () {
   echo "  VALABIND_DEBUG if not empty show stderr of commands"
   echo "  PYTHON_CONFIG  path to python-config program (select py2 or py3)"
   echo "  SWIGFLAGS      extra flags to be passed to swig"
-  echo "  SOEXT          force specific extension for shared library (so, dll, dylib)"
+  echo "  SOEXT          force extension for shared library (so, dll, dylib)"
   echo "  SWIG           path to swig program"
   exit 0
 }
@@ -97,6 +98,14 @@ dlang)
 nodejs|node|node-ffi)
   node --version >/dev/null 2>&1 || exit 1
   ;;
+ocaml)
+  use_cxx
+  echo "SWIG is buggy. Please set in ocamldec.swg the following line:"
+  echo "#define caml_array_length swig_caml_array_length"
+  OCAMLPATH=`ocamlc -where`
+  CFLAGS="${CFLAGS} -I${OCAMLPATH}/ -Dcaml_array_length=caml_array_length__"
+  LDFLAGS="${LDFLAGS} -L${OCAMLPATH} -lcamlrun"
+  ;;
 guile)
   use_cxx
   CFLAGS="${CFLAGS} `guile-config compile 2>/dev/null`"
@@ -104,7 +113,7 @@ guile)
   ;;
 python)
   use_cxx
-  LDFLAGS="-L/usr/local/lib -L/usr/pkg/lib"
+  LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/pkg/lib"
   if [ -n "`echo ${CXX} | grep mingw`" ]; then
     CFLAGS="${CFLAGS} -I${HOME}/.wine/drive_c/Python27/include"
     LDFLAGS="${LDFLAGS} -L${HOME}/.wine/drive_c/Python27/libs -lpython27"
@@ -121,8 +130,8 @@ python)
       echo "No valid PYTHON_CONFIG command found" >&2
       exit 1
     fi
-    CFLAGS="${CFLAGS} `$PYCFG --cflags | sed -e 's,-arch .*,,g'`"
-    LDFLAGS="${LDFLAGS} `$PYCFG --ldflags`"
+    CFLAGS="${CFLAGS} `$PYCFG --cflags | sed -e 's,-arch [^ ]*,,g'`"
+    LDFLAGS="${LDFLAGS} `$PYCFG --ldflags| sed -e 's,-arch [^ ]*,,g'`"
   fi
   OMOD="_${MOD}"
   # XXX SWIGFLAGS="${SWIGFLAGS} -threads"
@@ -133,26 +142,33 @@ ruby)
   else
   if [ "`ruby --version 2>/dev/null | grep 1.9`" ]; then
     RB_CFLAGS=`ruby -e 'require "mkmf"; a=RbConfig::CONFIG["rubyhdrdir"]; print "-I#{a} -I#{a}/" + RbConfig::CONFIG["arch"];'`
-  fi ; fi
+  else
+  if [ "`ruby --version 2>/dev/null | grep 2.0`" ]; then
+    RB_CFLAGS=`ruby -e 'require "mkmf"; a=RbConfig::CONFIG["rubyhdrdir"]; print "-I#{a} -I#{a}/" + RbConfig::CONFIG["arch"];'`
+  else
+  if [ "`ruby --version 2>/dev/null | grep 2.1`" ]; then
+    RB_CFLAGS=`ruby -e 'require "mkmf"; a=RbConfig::CONFIG["rubyhdrdir"]; print "-I#{a} -I#{a}/" + RbConfig::CONFIG["arch"];'`
+  fi ; fi ; fi ; fi
   CFLAGS="${CFLAGS} ${RB_CFLAGS}"
   ;;
 perl)
   LC_ALL=C # fix anoying perl warning
   export LC_ALL
-  CFLAGS="${CFLAGS} `perl -MExtUtils::Embed -e ccopts 2>/dev/null`"
-  LDFLAGS="${LDFLAGS} `perl -MExtUtils::Embed -e ldopts 2>/dev/null`"
+  CFLAGS="${CFLAGS} `perl -MExtUtils::Embed -e ccopts 2>/dev/null | sed -e 's,-arch [^ ]*,,g'`"
+
+  LDFLAGS="${LDFLAGS} `perl -MExtUtils::Embed -e ldopts 2>/dev/null | sed -e 's,-arch [^ ]*,,g'`"
   ;;
 java)
-  if [ -f /opt/java/include/jni.h ]; then
+  if [ -n "$JAVA_HOME" ]; then
+    [ "`uname`" = Darwin ] && osname=darwin || osname=linux
+    CFLAGS="${CFLAGS} -I${JAVA_HOME}/include -I${JAVA_HOME}/include/$osname"
+  elif [ -f /opt/java/include/jni.h ]; then
     CFLAGS="${CFLAGS} -I/opt/java/include -I/opt/java/include/linux"
-  else
-  if [ "$JAVA_HOME" ]; then
-    CFLAGS="${CFLAGS} -I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
-  fi ; fi
+  fi
   ;;
 php5)
   CFLAGS="`php-config --includes 2>/dev/null` `pkg-config --libs libpng 2>/dev/null`"
-  LDFLAGS=`php-config --libs 2>/dev/null`
+  LDFLAGS="${LDFLAGS} `php-config --libs 2>/dev/null`"
   ;;
 lua)
   SOEXT=so
