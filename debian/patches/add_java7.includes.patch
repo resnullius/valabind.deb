@@ -1,0 +1,20 @@
+Description: Add a JAVA_HOME default value for Debian.
+ Otherwise, valabind-cc cannot find jni.h.
+Author: David Martínez Moreno <ender@debian.org>
+Forwarded: no
+Last-Update: 2014-07-25
+
+Index: valabind/valabind-cc
+===================================================================
+--- valabind.orig/valabind-cc
++++ valabind/valabind-cc
+@@ -160,6 +160,9 @@ perl)
+   LDFLAGS="${LDFLAGS} `perl -MExtUtils::Embed -e ldopts 2>/dev/null | sed -e 's,-arch [^ ]*,,g'`"
+   ;;
+ java)
++  if [ -z "$JAVA_HOME" ]; then
++    JAVA_HOME="/usr/lib/jvm/java-7-openjdk-$(dpkg-architecture -qDEB_HOST_ARCH)"
++  fi
+   if [ -n "$JAVA_HOME" ]; then
+     [ "`uname`" = Darwin ] && osname=darwin || osname=linux
+     CFLAGS="${CFLAGS} -I${JAVA_HOME}/include -I${JAVA_HOME}/include/$osname"

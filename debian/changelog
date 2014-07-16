@@ -1,3 +1,11 @@
+valabind (0.8.0-2) unstable; urgency=low
+
+  * debian/patches/add_java7_includes: Add default includes for a Debian
+    environment in the Java test.  If you already defined JAVA_HOME this makes
+    nothing.
+
+ -- David Martínez Moreno <ender@debian.org>  Thu, 17 Jul 2014 00:16:51 +0200
+
 valabind (0.8.0-1) unstable; urgency=low
 
   * New upstream release:

@@ -1,1 +1,2 @@
 add_nolibpython.patch
+add_java7.includes.patch
