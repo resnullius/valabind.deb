@@ -1,4 +1,6 @@
-/* Copyleft 2013 -- pancake // nopcode.org */
+/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
+
+/* GPLv3 - Copyright 2013-2014 -- pancake */
 
 using Vala;
 
@@ -181,7 +183,8 @@ public class DlangWriter : ValabindWriter {
 				type = get_ctype (type);
 				if (f.variable_type is ArrayType) {
 					ArrayType array = f.variable_type as ArrayType;
-					int sz = array.length;
+					int len = array_length(array);
+					int sz = len < 0 ? 0 : len;
 					defs += "  %s %s[%d];\n".printf (type, name, sz);
 				} else {
 					defs += "  %s %s;\n".printf (type, name);

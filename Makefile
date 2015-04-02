@@ -1,4 +1,4 @@
-_VERSION=0.8.0
+_VERSION=0.9.0
 #GIT_TIP=$(shell [ -d .git ] && git log HEAD^..HEAD 2>/dev/null |head -n1|cut -d ' ' -f2)
 GIT_TIP=$(shell git describe --tags)
 CONTACT=pancake@nopcode.org
@@ -14,7 +14,7 @@ VALAPKG:=$(shell ./getvv)
 BUILD?=build
 BIN=valabind
 SRC=config.vala main.vala valabindwriter.vala nodeffiwriter.vala utils.vala
-SRC+=girwriter.vala swigwriter.vala cxxwriter.vala ctypeswriter.vala dlangwriter.vala
+SRC+=girwriter.vala swigwriter.vala cxxwriter.vala ctypeswriter.vala dlangwriter.vala gowriter.vala
 VAPIS:=$(SRC:%.vala=$(BUILD)/%.vapi)
 CSRC:=$(SRC:%.vala=$(BUILD)/%.c)
 VALA_FILTER=$(filter %.vala,$?)
