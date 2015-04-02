@@ -1,3 +1,14 @@
+valabind (0.9.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release:
+    - Lots of fixes for Vala 0.26.
+    - Many other minor fixes.
+  * debian/patches:
+    - add_nolibpython: Merged.
+    - fix-build-against-0.26: Merged.
+
+ -- David Martínez Moreno <ender@debian.org>  Thu, 02 Apr 2015 00:20:08 -0700
+
 valabind (0.8.0-2.1) unstable; urgency=medium
 
   * Non-maintainer upload.
