@@ -1,4 +1,6 @@
-/* Copyleft 2009-2012 -- pancake */
+/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
+
+/* Copyleft 2009-2014 -- pancake, ritesh */
 
 public void notice (string msg) {
 	stderr.printf ("\x1b[34;1mNOTICE\x1b[0m %s\n", msg);
@@ -11,6 +13,20 @@ public void warning (string msg) {
 public void error (string msg) {
 	stderr.printf ("\x1b[31;1mERROR\x1b[0m %s\n", msg);
 	Posix.exit (1);
+}
+
+// TODO: check out if this is really required ?
+public int array_length (Vala.ArrayType array) {
+#if VALA_0_25 || VALA_0_26
+	/* If valac >= 0.25 use this workaround to resolve the array length */
+	if (array.fixed_length && array.length is Vala.IntegerLiteral) {
+		Vala.IntegerLiteral lit = (Vala.IntegerLiteral) array.length;
+		return int.parse (lit.value);
+	}
+	return -1;
+#else
+	return array.length;
+#endif
 }
 
 // TODO: make it reusable for other backends
