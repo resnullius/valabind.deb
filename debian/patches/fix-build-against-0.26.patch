@@ -1,0 +1,171 @@
+From 62912d2d3b8287c0b18b16cc325d5e8e2882af1f Mon Sep 17 00:00:00 2001
+From: Ritesh Khadgaray <khadgaray@gmail.com>
+Date: Sat, 16 Aug 2014 02:37:00 +0530
+Subject: [PATCH] fix build against 0.26
+
+---
+ ctypeswriter.vala  | 16 +++++++++++-----
+ dlangwriter.vala   |  6 +++++-
+ nodeffiwriter.vala |  8 ++++++--
+ swigwriter.vala    | 13 +++++++++----
+ utils.vala         | 13 +++++++++++++
+ 5 files changed, 44 insertions(+), 12 deletions(-)
+
+diff --git a/ctypeswriter.vala b/ctypeswriter.vala
+index 58b4f88..8de8947 100644
+--- a/ctypeswriter.vala
++++ b/ctypeswriter.vala
+@@ -1,4 +1,7 @@
++/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
++
+ /* Copyright GPLv3 - 2009-2014 - pancake */
++/* Copyleft 2014 -- Ritesh Khadgaray <khadgaray@gmail.com> */
+ 
+ using Vala;
+ 
+@@ -204,9 +207,12 @@ public class CtypesWriter : ValabindWriter {
+ 		if (type is ArrayType) {
+ 			ArrayType array = type as ArrayType;
+ 			string element = type_name (array.element_type, retType);
+-			if (!array.fixed_length)
++
++			int len = array_length(array);
++			if (len < 0 )
+ 				return element; //+"*"; // FIXME should this be element+"[]"?
+-			return "'"+element+"', * %d".printf (array.length); // FIXME will this work?
++			
++			return "'"+element+"', * %d".printf (len); // FIXME will this work?		
+ 		}
+ 
+ 		if (!ignoreRef && (type is ReferenceType)) {
+@@ -406,10 +412,10 @@ n++;
+ 			ArrayType array = type as ArrayType;
+ 			string element = type_name (array.element_type);
+ 			warning ("Arrays not yet supported in ctypes bindings");
+-			if (!array.fixed_length)
++			int len = array_length(array);
++			if (len < 0)
+ 				field = element + "* " + f.name; // FIXME should this be element+"[]"?
+-			field = "'%s', %s * %d".printf (f.name, element, array.length);
+-            stype = element;
++			field = "'%s', %s * %d".printf (f.name, element, len);
+ 		} else {
+ 			/* HACK to support generics. this is r2 specific */
+ 			if (stype.index_of ("RListIter") != -1) {
+diff --git a/dlangwriter.vala b/dlangwriter.vala
+index 434502d..8fec7d5 100644
+--- a/dlangwriter.vala
++++ b/dlangwriter.vala
+@@ -1,4 +1,7 @@
++/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
++
+ /* Copyleft 2013 -- pancake // nopcode.org */
++/* Copyleft 2014 -- Ritesh Khadgaray <khadgaray@gmail.com> */
+ 
+ using Vala;
+ 
+@@ -181,7 +184,8 @@ public class DlangWriter : ValabindWriter {
+ 				type = get_ctype (type);
+ 				if (f.variable_type is ArrayType) {
+ 					ArrayType array = f.variable_type as ArrayType;
+-					int sz = array.length;
++					int len = array_length(array);
++					int sz = len < 0 ? 0 : len;
+ 					defs += "  %s %s[%d];\n".printf (type, name, sz);
+ 				} else {
+ 					defs += "  %s %s;\n".printf (type, name);
+diff --git a/nodeffiwriter.vala b/nodeffiwriter.vala
+index 9eddb2d..8c7951a 100644
+--- a/nodeffiwriter.vala
++++ b/nodeffiwriter.vala
+@@ -1,4 +1,7 @@
++/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
++
+ /* Copyleft 2012 -- pancake // eddyb */
++/* Copyleft 2014 -- Ritesh Khadgaray <khadgaray@gmail.com> */
+ 
+ using Vala;
+ 
+@@ -65,9 +68,10 @@ public class NodeFFIWriter : ValabindWriter {
+ 		if (type is ArrayType) {
+ 			ArrayType array = type as ArrayType;
+ 			string element = type_name (array.element_type);
+-			if (!array.fixed_length)
++			int len = array_length(array);
++			if (len < 0)
+ 				return "_.ptr("+element+")";
+-			return "_.array("+element+", %d)".printf (array.length);
++			return "_.array("+element+", %d)".printf (len);
+ 		}
+ 
+ 		if (!ignoreRef && (type is ReferenceType)) {
+diff --git a/swigwriter.vala b/swigwriter.vala
+index 9e35599..279af1e 100644
+--- a/swigwriter.vala
++++ b/swigwriter.vala
+@@ -1,4 +1,7 @@
++/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
++
+ /* Copyleft 2009-2013 -- pancake, eddyb */
++/* Copyleft 2014 -- Ritesh Khadgaray <khadgaray@gmail.com> */
+ 
+ using Vala;
+ 
+@@ -83,9 +86,10 @@ public class SwigWriter : ValabindWriter {
+ 		if (type is ArrayType) {
+ 			ArrayType array = type as ArrayType;
+ 			string element = type_name (array.element_type, retType);
+-			if (!array.fixed_length)
++			int len = array_length(array);
++			if (len < 0 )
+ 				return element+"*"; // FIXME should this be element+"[]"?
+-			return element+"[%d]".printf (array.length); // FIXME will this work?
++			return element+"[%d]".printf (len); // FIXME will this work?
+ 		}
+ 
+ 		if (!ignoreRef && (type is ReferenceType)) {
+@@ -257,9 +261,10 @@ public class SwigWriter : ValabindWriter {
+ 		if (type is ArrayType) {
+ 			ArrayType array = type as ArrayType;
+ 			string element = type_name (array.element_type);
+-			if (!array.fixed_length)
++			int len = array_length(array);	
++			if (len < 0)
+ 				field = element + "* " + f.name; // FIXME should this be element+"[]"?
+-			field = element + " " + f.name + "[%d]".printf (array.length); // FIXME will this work?
++			field = element + " " + f.name + "[%d]".printf (len); // FIXME will this work?
+ 		} else {
+ 			/* HACK to support generics. this is r2 specific */
+ 			string _type = type.to_string ();
+diff --git a/utils.vala b/utils.vala
+index d4bc505..ab1e633 100644
+--- a/utils.vala
++++ b/utils.vala
+@@ -1,4 +1,7 @@
++/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
++
+ /* Copyleft 2009-2012 -- pancake */
++/* Copyleft 2014 -- Ritesh Khadgaray <khadgaray@gmail.com> */
+ 
+ public void notice (string msg) {
+ 	stderr.printf ("\x1b[34;1mNOTICE\x1b[0m %s\n", msg);
+@@ -13,6 +16,16 @@ public void error (string msg) {
+ 	Posix.exit (1);
+ }
+ 
++// TODO: check out if this is really required ?
++public int array_length (Vala.ArrayType array) {
++	if (array.fixed_length && array.length is Vala.IntegerLiteral) {
++		Vala.IntegerLiteral lit = (Vala.IntegerLiteral) array.length;
++		return int.parse (lit.value);
++	}
++
++	return -1;
++}
++
+ // TODO: make it reusable for other backends
+ public string get_enums_for (string str, GLib.List<string> includefiles) {
+ 	string enums_exec, enums_out = "";
+-- 
+2.1.1
+
