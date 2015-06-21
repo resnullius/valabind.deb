@@ -1,4 +1,4 @@
-_VERSION=0.9.0
+_VERSION=0.9.2
 #GIT_TIP=$(shell [ -d .git ] && git log HEAD^..HEAD 2>/dev/null |head -n1|cut -d ' ' -f2)
 GIT_TIP=$(shell git describe --tags)
 CONTACT=pancake@nopcode.org
@@ -35,9 +35,27 @@ endif
 INSTALL_MAN?=install -m0644
 INSTALL_PROGRAM?=install -m0755
 
+ifneq ($(W32),)
+VALAFLAGS+=-D W32=1
+PREFIX=/opt/gtk3w32/
+PKG_CONFIG_PATH=$(W32_PREFIX)/lib/pkgconfig
+CFLAGS=-I$(PREFIX)/include/glib
+CFLAGS+=-I$(PREFIX)/include/glib
+LDFLAGS=-L$(PREFIX)/lib
+CC=i686-pc-mingw32-gcc
+all: $(BIN).exe
+else
 all: $(BIN)
+endif
+
+w32:
+	$(MAKE) W32=1
 
 .PRECIOUS: $(BUILD)/%.c $(BUILD)/%.vapi
+$(BIN).exe: $(SRC) | $(VAPIS)
+	@echo 'Compiling $(VALA_FILTER) -> $@'
+	$(VALAC) --vapidir=. -D W32 -X "${CFLAGS}" -X "${LDFLAGS}" -o $@ --pkg $(VALAPKG) --save-temps ${TEMPS} windows.c --pkg windows
+	@mv $(VALA_FILTER:%.vala=%.c) $(BUILD)
 
 $(BIN): $(SRC) | $(VAPIS)
 	@echo 'Compiling $(VALA_FILTER) -> $@'
@@ -46,7 +64,8 @@ $(BIN): $(SRC) | $(VAPIS)
 
 $(BUILD)/%.vapi: %.vala | $(BUILD)
 	@echo 'Generating $< -> $@'
-	@$(VALAC) --fast-vapi=$@ $<
+	@$(VALAC) $(VALAFLAGS) --fast-vapi=$@ $<
+	@${MAKE} config.vala
 
 config.vala:
 	@echo 'Generating $@'
@@ -85,12 +104,14 @@ shot:
 mrproper clean:
 	rm -f config.vala
 	rm -rf $(BUILD) $(BIN)
-	rm -rf *.c
+	rm -rf $(CSRC)
 
 deinstall: uninstall
 
 uninstall:
+	-rm $(DESTDIR)$(MANDIR)/man1/$(BIN).1
+	-rm $(DESTDIR)$(MANDIR)/man1/$(BIN)-cc.1
 	-rm $(DESTDIR)$(PREFIX)/bin/$(BIN)
 	-rm $(DESTDIR)$(PREFIX)/bin/$(BIN)-cc
 
-.PHONY: all clean dist install symstall uninstall deinstall mrproper
+.PHONY: all clean dist install symstall uninstall deinstall mrproper 
