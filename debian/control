@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: David Martínez Moreno <ender@debian.org>
 Uploaders: Sebastian Reichel <sre@debian.org>
 Build-Depends: debhelper (>= 9),
-               libvala-0.26-dev,
-               valac (>= 0.26),
+               libvala-0.28-dev,
+               valac (>= 0.28),
                quilt
 Standards-Version: 3.9.6
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-vala/valabind.git
