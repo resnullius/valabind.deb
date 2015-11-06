@@ -1,3 +1,9 @@
+valabind (0.9.2-2) unstable; urgency=medium
+
+  * Switch to vala 0.30 (Closes: #801238, #802112)
+
+ -- Sebastian Reichel <sre@debian.org>  Fri, 06 Nov 2015 04:23:45 +0100
+
 valabind (0.9.2-1) unstable; urgency=medium
 
   * New upstream release
