@@ -1,3 +1,9 @@
+valabind (0.10.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Jose Luis Rivas <ghostbar@debian.org>  Thu, 16 Jun 2016 03:28:32 -0400
+
 valabind (0.9.2-2) unstable; urgency=medium
 
   * Switch to vala 0.30 (Closes: #801238, #802112)
