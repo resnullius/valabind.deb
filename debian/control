@@ -1,8 +1,7 @@
 Source: valabind
 Section: devel
 Priority: optional
-Maintainer: David Martínez Moreno <ender@debian.org>
-Uploaders: Sebastian Reichel <sre@debian.org>
+Maintainer: Jose-Luis Rivas <ghostbar@debian.org>
 Build-Depends: debhelper (>= 9),
                libvala-0.30-dev,
                valac (>= 0.28),
